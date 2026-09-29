@@ -1,0 +1,23 @@
+{
+ "name": "Project Assistance AI",
+ "short_name": "Assistance AI",
+ "start_url": "./project-assistance-ai.html",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0E1512",
+ "theme_color": "#2F6B4F",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}
