@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Project Assistance AI</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2F6B4F">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#EEF2EE;--card:#fff;--ink:#14231B;--mute:#5E6E64;--line:#D5DDD6;--acc:#2F6B4F;--acc-ink:#fff;--acc-soft:#DCEBE2;--warn:#B7791F;--bad:#B3392F;--user:#14231B;--user-ink:#fff;--r:12px;
+--f:"Instrument Sans","Noto Sans Khmer",system-ui,sans-serif}
+[data-theme=dark]{--bg:#0E1512;--card:#17211C;--ink:#E6EEE8;--mute:#93A398;--line:#28362F;--acc:#6DBF95;--acc-ink:#0E1512;--acc-soft:#1E3128;--warn:#E0A94A;--bad:#E27B70;--user:#2F6B4F;--user-ink:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0E1512;--card:#17211C;--ink:#E6EEE8;--mute:#93A398;--line:#28362F;--acc:#6DBF95;--acc-ink:#0E1512;--acc-soft:#1E3128;--warn:#E0A94A;--bad:#E27B70;--user:#2F6B4F;--user-ink:#fff}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font:15px/1.55 var(--f);background:var(--bg);color:var(--ink);padding-top:env(safe-area-inset-top,0);}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#app{display:grid;grid-template-columns:88px 1fr;height:100%}
+nav{background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:stretch;padding:12px 6px;gap:4px}
+nav .logo{font-weight:700;font-size:13px;text-align:center;padding:6px 2px 12px;color:var(--acc);line-height:1.2}
+nav button{background:none;border:0;border-radius:10px;padding:9px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mute);position:relative}
+nav button .i{font-size:20px;line-height:1}
+nav button.on{background:var(--acc-soft);color:var(--acc);font-weight:600}
+nav .badge{position:absolute;top:4px;right:16px;background:var(--bad);color:#fff;border-radius:9px;font-size:10px;padding:0 5px;min-width:16px;text-align:center}
+main{overflow:hidden;display:flex;flex-direction:column;min-width:0}
+#banner{display:none;background:var(--warn);color:#fff;text-align:center;padding:6px;font-size:13px}
+#banner.show{display:block}
+.view{display:none;flex:1;overflow:auto;padding:24px;min-height:0}
+.view.on{display:block}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:30px;line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 10px}
+h3{font-size:15px;margin:0 0 6px}
+.mute{color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.btn{background:var(--acc);color:var(--acc-ink);border:0;border-radius:9px;padding:8px 14px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input[type=text],input[type=password],input[type=time],input[type=search],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:8px 14px}
+.chip:hover{border-color:var(--acc)}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat div{background:var(--bg);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:22px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500}
+.tw{overflow-x:auto}
+.pill{display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;background:var(--acc-soft);color:var(--acc)}
+.pill.failed{background:#f5d9d5;color:var(--bad)}.pill.skipped,.pill.removed{background:var(--bg);color:var(--mute)}.pill.indexing{background:#f6e8c8;color:var(--warn)}
+/* chat */
+#v-chat{padding:0;overflow:hidden}
+#v-chat.on{display:grid;grid-template-columns:260px 1fr}
+#convs{border-right:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;min-height:0}
+#convs .top{padding:10px;display:flex;flex-direction:column;gap:8px}
+#convlist{overflow:auto;flex:1;padding:0 6px 10px}
+.ci{display:flex;align-items:center;gap:4px;padding:7px 8px;border-radius:8px;cursor:pointer}
+.ci:hover{background:var(--bg)}.ci.on{background:var(--acc-soft)}
+.ci span.t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci button{background:none;border:0;color:var(--mute);padding:2px 4px}
+#chatcol{display:flex;flex-direction:column;min-height:0;min-width:0}
+#msgs{flex:1;overflow:auto;padding:20px}
+.msg{max-width:780px;margin:0 auto 16px}
+.msg.u .bub{background:var(--user);color:var(--user-ink);margin-left:auto;width:fit-content;max-width:88%;border-radius:14px 14px 3px 14px;padding:9px 13px;white-space:pre-wrap}
+.msg.a .bub{padding:2px 0}
+.bub p{margin:0 0 8px}.bub ul,.bub ol{margin:0 0 8px;padding-left:22px}.bub h4{margin:8px 0 4px}
+.bub code{background:var(--bg);padding:0 4px;border-radius:4px}
+.cite{display:inline-block;background:var(--acc-soft);color:var(--acc);border-radius:6px;font-size:11px;font-weight:700;padding:0 5px;margin:0 1px;text-decoration:none;vertical-align:1px}
+.src{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13.5px}
+.src .n{font-weight:700;color:var(--acc)}
+.src a{color:var(--acc);font-weight:600;text-decoration:none}
+.src small{display:block;color:var(--mute)}
+.acts{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.acts button{background:none;border:0;color:var(--mute);font-size:12.5px;padding:3px 7px;border-radius:6px}
+.acts button:hover{background:var(--bg);color:var(--ink)}
+.dots::after{content:"";animation:d 1.2s steps(4,end) infinite}
+@keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@media(prefers-reduced-motion:reduce){.dots::after{animation:none;content:"..."}}
+#composer{border-top:1px solid var(--line);background:var(--card);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0))}
+#composer .in{max-width:780px;margin:0 auto}
+#composer textarea{resize:none;height:44px;max-height:140px}
+.modes{display:flex;gap:4px;margin-bottom:6px}
+.modes button{border:1px solid var(--line);background:none;border-radius:16px;padding:2px 12px;font-size:13px}
+.modes button.on{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+#convtoggle{display:none}
+.err{color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:9px;display:none;z-index:50;max-width:90%}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+#modal.on{display:flex}
+#modal .box{background:var(--card);border-radius:var(--r);max-width:720px;width:100%;max-height:85vh;overflow:auto;padding:18px}
+#modal pre{white-space:pre-wrap;font:13px/1.5 var(--f);background:var(--bg);padding:10px;border-radius:8px}
+.notif{display:flex;gap:10px;align-items:flex-start}
+.notif.unread{border-left:4px solid var(--acc)}
+@media(max-width:760px){
+ #app{grid-template-columns:1fr;grid-template-rows:1fr auto}
+ nav{grid-row:2;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0))}
+ nav .logo{display:none}nav button{flex:1;font-size:11px}
+ .view{padding:16px}
+ #v-chat.on{grid-template-columns:1fr}
+ #convs{position:absolute;z-index:20;top:0;bottom:0;left:0;width:82%;max-width:300px;transform:translateX(-100%);transition:transform .2s}
+ #convs.open{transform:none;box-shadow:0 0 30px rgba(0,0,0,.3)}
+ #v-chat{position:relative}
+ #convtoggle{display:inline-block}
+ h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+ <nav id="nav"></nav>
+ <main>
+  <div id="banner"></div>
+  <section class="view" id="v-home"></section>
+  <section class="view" id="v-chat">
+   <aside id="convs">
+    <div class="top"><button class="btn" id="newconv"></button><input type="search" id="convq"></div>
+    <div id="convlist"></div>
+   </aside>
+   <div id="chatcol">
+    <div class="row" style="padding:8px 14px;border-bottom:1px solid var(--line)">
+     <button class="btn ghost sm" id="convtoggle">☰</button>
+     <b id="convtitle" class="grow"></b>
+     <span class="mute" id="kbmini" style="font-size:12.5px"></span>
+    </div>
+    <div id="msgs"></div>
+    <div id="composer"><div class="in">
+     <div class="modes" id="modes"></div>
+     <div class="row" style="flex-wrap:nowrap">
+      <textarea id="q" rows="1"></textarea>
+      <button class="btn ghost" id="mic" title="Voice input">🎤</button>
+      <button class="btn" id="send">➤</button>
+     </div>
+    </div></div>
+   </div>
+  </section>
+  <section class="view" id="v-kb"></section>
+  <section class="view" id="v-alerts"></section>
+  <section class="view" id="v-me"></section>
+ </main>
+</div>
+<div id="toast"></div>
+<div id="modal"><div class="box" id="modalbox"></div></div>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $=(s,e=document)=>e.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const LS={get(k,d){try{const v=localStorage.getItem('pai:'+k);return v===null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem('pai:'+k,JSON.stringify(v))}catch(e){console.warn('storage full',e)}}};
+class AppErr extends Error{constructor(code,detail){super(code);this.code=code;this.detail=detail}}
+function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',ms)}
+function ago(ts){if(!ts)return '—';const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return T('justnow');const m=s/60;if(m<60)return Math.floor(m)+' '+T('min');const h=m/60;if(h<24)return Math.floor(h)+' '+T('hr');return Math.floor(h/24)+' '+T('day')}
+const fmtDate=s=>s?new Date(s).toLocaleDateString():'—';
+
+/* ---------- i18n ---------- */
+const I18N={
+en:{home:'Home',chat:'Chat',kb:'Knowledge',alerts:'Alerts',me:'Profile',hello:'How can I help you?',q1:'Ask about my documents',q2:'Summarize latest reports',q3:'Search Drive',q4:'Compare documents',q5:'Show recent updates',
+q1p:'What are the main topics covered in my documents?',q2p:'Summarize the most recently modified reports.',q3p:'Find documents that mention budget.',q4p:'Compare the two most recent project reports: similarities, differences, numbers and challenges.',q5p:'Which documents were updated recently and what changed?',
+newchat:'New conversation',searchconv:'Search conversations',ask:'Ask',search:'Search',analyze:'Analyze',placeholder:'Ask about your documents…',searching:'Searching your documents…',thinking:'Writing the answer…',
+copy:'Copy',share:'Share',regen:'Regenerate',speak:'Read aloud',sources:'Sources',rename:'Rename',del:'Delete',offline:"You're offline. Showing saved conversations; new questions are disabled.",
+notfound:"I couldn't find reliable information about this in the connected Google Drive.",generic:"Sorry, I couldn't complete that request. Please try again.",
+lastsync:'Last synchronized',kbdocs:'Knowledge base',docs:'documents',justnow:'just now',min:'min ago',hr:'h ago',day:'d ago',never:'never',
+connect:'Connect',syncnow:'Sync now',reindexall:'Re-index all',folder:'Drive folder link or ID',view:'View',open:'Open in Google Drive',reindex:'Re-index',remove:'Remove from AI index',
+doc:'Document',type:'Type',modified:'Modified',indexed:'Indexed',status:'Status',source:'Source',actions:'Actions',
+signin:'Sign in with Google',signout:'Sign out',lang:'Language',theme:'Theme',clear:'Clear all',markread:'Mark all read',noalerts:'No notifications yet.',
+setup:'Set up',setup1:'Add a Google OAuth client ID and at least one Gemini API key in Profile.',setup2:'Sign in with Google and paste your Drive folder link in Knowledge.',setup3:'Sync, then ask questions.',
+emptykb:'No documents indexed yet. Connect a folder and sync.',empty:'Ask a question about your Drive documents. Answers cite the source file and page.'},
+km:{home:'ទំព័រដើម',chat:'ជជែក',kb:'ចំណេះដឹង',alerts:'ជូនដំណឹង',me:'ប្រូហ្វាល',hello:'តើខ្ញុំអាចជួយអ្វីបាន?',q1:'សួរអំពីឯកសាររបស់ខ្ញុំ',q2:'សង្ខេបរបាយការណ៍ថ្មីៗ',q3:'ស្វែងរកក្នុង Drive',q4:'ប្រៀបធៀបឯកសារ',q5:'បង្ហាញការធ្វើបច្ចុប្បន្នភាពថ្មីៗ',
+q1p:'តើប្រធានបទសំខាន់ៗក្នុងឯកសាររបស់ខ្ញុំមានអ្វីខ្លះ?',q2p:'សូមសង្ខេបរបាយការណ៍ដែលបានកែប្រែថ្មីៗបំផុត។',q3p:'រកឯកសារដែលនិយាយអំពីថវិកា។',q4p:'ប្រៀបធៀបរបាយការណ៍គម្រោងថ្មីបំផុតពីរ៖ ភាពដូចគ្នា ភាពខុសគ្នា ចំនួន និងបញ្ហាប្រឈម។',q5p:'តើឯកសារណាខ្លះត្រូវបានធ្វើបច្ចុប្បន្នភាពថ្មីៗ ហើយមានអ្វីផ្លាស់ប្តូរ?',
+newchat:'ការសន្ទនាថ្មី',searchconv:'ស្វែងរកការសន្ទនា',ask:'សួរ',search:'ស្វែងរក',analyze:'វិភាគ',placeholder:'សួរអំពីឯកសាររបស់អ្នក…',searching:'កំពុងស្វែងរកឯកសាររបស់អ្នក…',thinking:'កំពុងសរសេរចម្លើយ…',
+copy:'ចម្លង',share:'ចែករំលែក',regen:'បង្កើតឡើងវិញ',speak:'អានឮៗ',sources:'ប្រភព',rename:'ប្តូរឈ្មោះ',del:'លុប',offline:'អ្នកមិនមានអ៊ីនធឺណិត។ អាចមើលការសន្ទនាដែលបានរក្សាទុក ប៉ុន្តែមិនអាចសួរថ្មីបានទេ។',
+notfound:"I couldn't find reliable information about this in the connected Google Drive.",generic:'សូមអភ័យទោស ខ្ញុំមិនអាចបំពេញសំណើនេះបានទេ។ សូមព្យាយាមម្តងទៀត។',
+lastsync:'ធ្វើសមកាលកម្មចុងក្រោយ',kbdocs:'មូលដ្ឋានចំណេះដឹង',docs:'ឯកសារ',justnow:'ទើបតែ',min:'នាទីមុន',hr:'ម៉ោងមុន',day:'ថ្ងៃមុន',never:'មិនធ្លាប់',
+connect:'តភ្ជាប់',syncnow:'ធ្វើសមកាលកម្មឥឡូវ',reindexall:'បង្កើតសន្ទស្សន៍ឡើងវិញទាំងអស់',folder:'តំណ ឬ ID ថត Drive',view:'មើល',open:'បើកក្នុង Google Drive',reindex:'បង្កើតសន្ទស្សន៍ឡើងវិញ',remove:'ដកចេញពីសន្ទស្សន៍ AI',
+doc:'ឯកសារ',type:'ប្រភេទ',modified:'កែប្រែ',indexed:'បានដាក់សន្ទស្សន៍',status:'ស្ថានភាព',source:'ប្រភព',actions:'សកម្មភាព',
+signin:'ចូលដោយ Google',signout:'ចាកចេញ',lang:'ភាសា',theme:'រូបរាង',clear:'សម្អាតទាំងអស់',markread:'សម្គាល់ថាបានអានទាំងអស់',noalerts:'មិនទាន់មានការជូនដំណឹង។',
+setup:'ការរៀបចំ',setup1:'បញ្ចូល Google OAuth client ID និង Gemini API key យ៉ាងតិចមួយ នៅក្នុងប្រូហ្វាល។',setup2:'ចូលដោយ Google ហើយបិទភ្ជាប់តំណថត Drive នៅក្នុងចំណេះដឹង។',setup3:'ធ្វើសមកាលកម្ម រួចចាប់ផ្តើមសួរ។',
+emptykb:'មិនទាន់មានឯកសារទេ។ សូមតភ្ជាប់ថត ហើយធ្វើសមកាលកម្ម។',empty:'សួរអំពីឯកសារ Drive របស់អ្នក។ ចម្លើយនឹងបង្ហាញប្រភព និងទំព័រ។'}
+};
+let S=Object.assign({clientId:'',folderId:'',folderName:'',keys:[{name:'primary',key:''}],model:'gemini-2.5-flash',embModel:'gemini-embedding-001',lang:'en',theme:'auto',topK:8,maxOut:2048,voiceOut:false},LS.get('settings',{}));
+const saveS=()=>LS.set('settings',S);
+const T=k=>(I18N[S.lang]&&I18N[S.lang][k])||I18N.en[k]||k;
+
+/* ---------- IndexedDB ---------- */
+let _db;
+const db=()=>_db??=new Promise((res,rej)=>{const r=indexedDB.open('pai',1);r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('docs',{keyPath:'id'});d.createObjectStore('chunks',{keyPath:'cid'}).createIndex('doc','docId')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function tx(store,mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction(store,mode);const r=fn(t.objectStore(store));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error)})}
+const dbAll=s=>tx(s,'readonly',o=>o.getAll());
+const dbPut=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+const dbDel=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
+async function putChunks(arr){const d=await db();return new Promise((res,rej)=>{const t=d.transaction('chunks','readwrite');const o=t.objectStore('chunks');arr.forEach(c=>o.put(c));t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function delChunks(docId){const d=await db();return new Promise((res,rej)=>{const t=d.transaction('chunks','readwrite');const o=t.objectStore('chunks');const r=o.index('doc').openKeyCursor(IDBKeyRange.only(docId));r.onsuccess=()=>{const c=r.result;if(c){o.delete(c.primaryKey);c.continue()}};t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+let chunkCache=null;
+const allChunks=async()=>chunkCache??=await dbAll('chunks');
+
+/* ---------- stats / notifications ---------- */
+const day=()=>new Date().toISOString().slice(0,10);
+let ST=LS.get('stats',{days:{},keys:{},log:[],failovers:0,lastFailover:null,lastError:null,current:null});
+const saveST=()=>LS.set('stats',ST);
+function keyState(n){return ST.keys[n]??={ok:0,err:0,rl:0,until:0,fails:0,lastErr:null}}
+function bump(field){const d=ST.days[day()]??={ok:0,rl:0,err:0};d[field]++}
+function logCall(o){ST.log.unshift(Object.assign({ts:Date.now()},o));ST.log.length=Math.min(ST.log.length,200);saveST()}
+let NOTIFS=LS.get('notifs',[]);
+function notify(title,body,link){NOTIFS.unshift({id:uid(),ts:Date.now(),title,body,link,read:false});NOTIFS.length=Math.min(NOTIFS.length,100);LS.set('notifs',NOTIFS);renderNav();if($('#v-alerts').classList.contains('on'))renderAlerts();
+ if('Notification' in window&&Notification.permission==='granted'&&document.hidden){try{new Notification(title,{body})}catch{}}}
+
+/* ---------- Gemini with key failover ---------- */
+const GBASE='https://generativelanguage.googleapis.com/v1beta';
+let lastCall=0;
+async function gate(){const wait=lastCall+350-Date.now();lastCall=Math.max(Date.now(),lastCall)+ (wait>0?wait:0);if(wait>0)await sleep(wait)}
+async function gemini(path,body,purpose='chat'){
+ const keys=S.keys.filter(k=>k.key&&k.key.trim());
+ if(!keys.length)throw new AppErr('nokeys');
+ let usable=keys.filter(k=>keyState(k.name).until<=Date.now());
+ if(!usable.length)throw new AppErr('allfail','all keys cooling down');
+ for(const k of usable){
+  const st=keyState(k.name);
+  for(let a=0;a<3;a++){
+   await gate();
+   const t0=performance.now();let res;
+   try{res=await fetch(`${GBASE}/${path}`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':k.key.trim()},body:JSON.stringify(body)})}
+   catch(e){st.err++;st.lastErr='network';bump('err');logCall({project:k.name,model:path.split(':')[0],status:'network',ms:Math.round(performance.now()-t0),purpose,reason:'network'});await sleep(2**a*700+Math.random()*300);continue}
+   const ms=Math.round(performance.now()-t0);
+   if(res.ok){const j=await res.json();st.ok++;st.fails=0;bump('ok');ST.current=k.name;logCall({project:k.name,model:path.split(':')[0],status:200,ms,purpose,tokens:j.usageMetadata?.totalTokenCount});saveST();return j}
+   const txt=await res.text();let msg=txt;try{msg=JSON.parse(txt).error?.message||txt}catch{}
+   logCall({project:k.name,model:path.split(':')[0],status:res.status,ms,purpose,reason:String(msg).slice(0,160)});
+   if(res.status===429||/RESOURCE_EXHAUSTED|quota|rate limit/i.test(txt)){
+    st.rl++;bump('rl');st.lastErr='429';const m=/retry in ([\d.]+)s/i.exec(msg);st.until=Date.now()+Math.min(300000,Math.max(30000,m?parseFloat(m[1])*1000:60000));
+    ST.failovers++;ST.lastFailover=Date.now();ST.lastError='429 on '+k.name;saveST();
+    notify('API limit reached',`Gemini project "${k.name}" hit its limit. Trying the next configured project.`);break}
+   if(res.status>=500){st.err++;st.lastErr=String(res.status);bump('err');ST.lastError=res.status+' on '+k.name;saveST();await sleep(2**a*800+Math.random()*400);continue}
+   st.err++;bump('err');st.lastErr=String(res.status);ST.lastError=res.status+': '+String(msg).slice(0,120);saveST();
+   throw new AppErr('api',msg);
+  }
+  st.fails++;if(st.fails>=3){st.until=Date.now()+45000;st.fails=0} // circuit breaker
+  saveST();
+ }
+ notify('Gemini unavailable','All configured Gemini API projects are temporarily unavailable.');
+ throw new AppErr('allfail');
+}
+const genText=r=>(r.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+function norm(v){let s=0;for(const x of v)s+=x*x;s=Math.sqrt(s)||1;return Float32Array.from(v,x=>x/s)}
+async function embedDocs(texts){
+ const out=[];
+ for(let i=0;i<texts.length;i+=50){
+  const batch=texts.slice(i,i+50);
+  const r=await gemini(`models/${S.embModel}:batchEmbedContents`,{requests:batch.map(t=>({model:`models/${S.embModel}`,content:{parts:[{text:t}]},taskType:'RETRIEVAL_DOCUMENT',outputDimensionality:768}))},'embed');
+  r.embeddings.forEach(e=>out.push(norm(e.values)));
+ }
+ return out;
+}
+async function embedQuery(q){
+ const r=await gemini(`models/${S.embModel}:embedContent`,{model:`models/${S.embModel}`,content:{parts:[{text:q}]},taskType:'RETRIEVAL_QUERY',outputDimensionality:768},'embed');
+ return norm(r.embedding.values);
+}
+
+/* ---------- Google auth + Drive ---------- */
+const SCOPE='openid email profile https://www.googleapis.com/auth/drive.readonly';
+let tok=null,tokExp=0,USER=LS.get('user',null);
+function getToken(){return new Promise((res,rej)=>{
+ if(tok&&Date.now()<tokExp-60000)return res(tok);
+ if(!S.clientId)return rej(new AppErr('noclient'));
+ if(!window.google?.accounts?.oauth2)return rej(new AppErr('gis'));
+ const c=google.accounts.oauth2.initTokenClient({client_id:S.clientId.trim(),scope:SCOPE,
+  callback:async r=>{if(r.error)return rej(new AppErr('oauth',r.error));tok=r.access_token;tokExp=Date.now()+r.expires_in*1000;LS.set('signed',true);
+   if(!USER){try{const u=await(await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+tok}})).json();USER={name:u.name,email:u.email,pic:u.picture};LS.set('user',USER)}catch{}}
+   res(tok)},
+  error_callback:e=>rej(new AppErr('oauth',e.type))});
+ c.requestAccessToken({prompt:LS.get('signed')?'':'consent'});
+})}
+async function drive(path,opts={},raw=false,retry=true){
+ const t=await getToken();
+ const r=await fetch('https://www.googleapis.com/drive/v3/'+path,Object.assign({headers:{Authorization:'Bearer '+t}},opts));
+ if(r.status===401&&retry){tok=null;return drive(path,opts,raw,false)}
+ if(!r.ok)throw new AppErr('drive',r.status+' '+(await r.text()).slice(0,200));
+ return raw?r:r.json();
+}
+function parseFolderId(s){s=(s||'').trim();const m=/folders\/([\w-]+)/.exec(s)||/[?&]id=([\w-]+)/.exec(s);return m?m[1]:s}
+async function listFolderTree(rootId){
+ const files=[],queue=[rootId],seen=new Set();
+ while(queue.length){
+  const fid=queue.shift();if(seen.has(fid))continue;seen.add(fid);
+  let pt='';
+  do{
+   const q=encodeURIComponent(`'${fid}' in parents and trashed=false`);
+   const j=await drive(`files?q=${q}&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,webViewLink,size)${pt?'&pageToken='+pt:''}`);
+   for(const f of j.files){if(f.mimeType==='application/vnd.google-apps.folder')queue.push(f.id);else files.push(f)}
+   pt=j.nextPageToken||'';
+  }while(pt);
+ }
+ return files;
+}
+
+/* ---------- document processing ---------- */
+const M={gdoc:'application/vnd.google-apps.document',gsheet:'application/vnd.google-apps.spreadsheet',gslides:'application/vnd.google-apps.presentation',
+ docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'};
+function kindOf(f){const m=f.mimeType,n=f.name.toLowerCase();
+ if(m===M.gdoc)return'Google Doc';if(m===M.gsheet)return'Google Sheet';if(m===M.gslides)return'Google Slides';
+ if(m==='application/pdf')return'PDF';if(m===M.docx||n.endsWith('.docx'))return'DOCX';if(m===M.xlsx||n.endsWith('.xlsx'))return'XLSX';if(m===M.pptx||n.endsWith('.pptx'))return'PPTX';
+ if(m==='text/csv'||n.endsWith('.csv'))return'CSV';if(m==='text/markdown'||n.endsWith('.md'))return'Markdown';if(m==='text/plain'||n.endsWith('.txt'))return'TXT';
+ if(m.startsWith('image/'))return'Image';return null}
+function b64(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)}
+async function geminiExtract(buf,mime,isPdf){
+ if(buf.byteLength>15*1024*1024)throw new AppErr('toolarge');
+ const prompt=isPdf?'Transcribe all text from this PDF. Put a line "===PAGE n===" (n = page number) before each page. Render tables as markdown tables. Describe charts/figures in one sentence. Output only the transcription.':'Extract all visible text from this image and add a one-sentence description of what it shows. Output only that.';
+ const r=await gemini(`models/${S.model}:generateContent`,{contents:[{parts:[{inline_data:{mime_type:mime,data:b64(buf)}},{text:prompt}]}],generationConfig:{maxOutputTokens:32768,temperature:0}},'extract');
+ const t=genText(r);if(!t.trim())throw new AppErr('empty');return t;
+}
+async function extractText(f,kind){
+ const dl=async()=>(await drive(`files/${f.id}?alt=media`,{},true)).arrayBuffer();
+ const ex=async mt=>(await drive(`files/${f.id}/export?mimeType=${encodeURIComponent(mt)}`,{},true)).text();
+ switch(kind){
+  case'Google Doc':return ex('text/plain');
+  case'Google Slides':return ex('text/plain');
+  case'Google Sheet':return ex('text/csv');
+  case'TXT':case'Markdown':case'CSV':return new TextDecoder().decode(await dl());
+  case'DOCX':return(await mammoth.extractRawText({arrayBuffer:await dl()})).value;
+  case'XLSX':{const wb=XLSX.read(await dl(),{type:'array'});return wb.SheetNames.map(n=>`## Sheet: ${n}\n`+XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n\n')}
+  case'PPTX':{const z=await JSZip.loadAsync(await dl());const names=Object.keys(z.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>parseInt(a.match(/\d+/))-parseInt(b.match(/\d+/)));
+   const out=[];for(const n of names){const x=await z.files[n].async('string');out.push(`===PAGE ${parseInt(n.match(/\d+/))}===\n`+[...x.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(m=>m[1]).join(' '))}return out.join('\n')}
+  case'PDF':return geminiExtract(await dl(),'application/pdf',true);
+  case'Image':return geminiExtract(await dl(),f.mimeType,false);
+ }
+ throw new AppErr('unsupported');
+}
+function chunkText(t,size=1200,ov=150){const out=[];t=t.replace(/\r/g,'').trim();let i=0;while(i<t.length){let end=Math.min(i+size,t.length);if(end<t.length){const b=t.lastIndexOf('\n',end);if(b>i+size*.5)end=b}const s=t.slice(i,end).trim();if(s.length>15)out.push(s);if(end>=t.length)break;i=end-ov}return out}
+function buildChunks(doc,text){
+ const parts=text.split(/^===PAGE (\d+)===\s*$/m),out=[];
+ const add=(page,body)=>chunkText(body).forEach(c=>out.push({page,text:c}));
+ if(parts.length===1)add(null,text);else{if(parts[0].trim())add(null,parts[0]);for(let i=1;i<parts.length;i+=2)add(parseInt(parts[i]),parts[i+1]||'')}
+ return out.slice(0,400);
+}
+async function indexFile(f,kind){
+ const doc={id:f.id,name:f.name,mime:f.mimeType,type:kind,modifiedTime:f.modifiedTime,md5:f.md5Checksum||null,url:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`,status:'indexing',indexedAt:null};
+ await dbPut('docs',doc);
+ try{
+  const text=await extractText(f,kind);
+  if(!text||text.trim().length<10)throw new AppErr('empty');
+  const ch=buildChunks(doc,text);
+  const vecs=await embedDocs(ch.map(c=>`title: ${f.name} | text: ${c.text}`));
+  await delChunks(f.id);
+  await putChunks(ch.map((c,i)=>({cid:f.id+':'+i,docId:f.id,name:f.name,url:doc.url,page:c.page,text:c.text,vec:vecs[i]})));
+  Object.assign(doc,{status:'indexed',indexedAt:Date.now(),chunks:ch.length,text:text.slice(0,60000),err:null});
+ }catch(e){Object.assign(doc,{status:'failed',err:(e.code||'')+' '+(e.detail||e.message||'').toString().slice(0,200)});await delChunks(f.id)}
+ await dbPut('docs',doc);chunkCache=null;return doc;
+}
+
+/* ---------- sync ---------- */
+let syncing=false,syncMsg='';
+async function sync(force=false){
+ if(syncing)return;if(!S.folderId){toast(T('setup2'));return}
+ syncing=true;setSyncMsg('Listing files…');
+ try{
+  const files=await listFolderTree(S.folderId);
+  const existing=new Map((await dbAll('docs')).map(d=>[d.id,d]));
+  const seen=new Set(),todo=[];let added=0,updated=0,failed=0,removed=0;
+  for(const f of files){
+   seen.add(f.id);const kind=kindOf(f);const ex=existing.get(f.id);
+   if(!kind){if(!ex)await dbPut('docs',{id:f.id,name:f.name,mime:f.mimeType,type:f.mimeType.split('/').pop(),modifiedTime:f.modifiedTime,url:f.webViewLink,status:'skipped',err:'unsupported type'});continue}
+   const changed=!ex||ex.modifiedTime!==f.modifiedTime||(f.md5Checksum&&ex.md5!==f.md5Checksum)||ex.status==='indexing';
+   if(ex&&ex.status==='removed'&&!changed&&!force)continue;
+   if(force||changed||(ex&&ex.status==='failed'&&force))todo.push({f,kind,isNew:!ex});
+  }
+  for(const ex of existing.values()){if(!seen.has(ex.id)){await delChunks(ex.id);await dbDel('docs',ex.id);removed++}}
+  let i=0;
+  for(const it of todo){i++;setSyncMsg(`Indexing ${i}/${todo.length}: ${it.f.name}`);
+   const d=await indexFile(it.f,it.kind);
+   if(d.status==='failed')failed++;else if(it.isNew){added++;notify('New document',`${it.f.name} was added to your Google Drive and is now available to Project Assistance AI.`,d.url)}else updated++;}
+  chunkCache=null;LS.set('idxver',(LS.get('idxver',0))+ (todo.length||removed?1:0));LS.set('lastSync',Date.now());
+  if(added)notify('Knowledge base',`${added} new document${added>1?'s were':' was'} added.`);
+  if(updated)notify('Knowledge base',`${updated} document${updated>1?'s were':' was'} updated.`);
+  if(removed)notify('Knowledge base',`${removed} document${removed>1?'s were':' was'} removed from Drive and from the index.`);
+  if(failed)notify('Knowledge base',`${failed} document${failed>1?'s':''} failed to index.`);
+  notify('Drive sync','Drive synchronization completed.');
+ }catch(e){notify('Drive sync failed',friendly(e,true));logAdmin(e)}
+ syncing=false;setSyncMsg('');refreshStatus();if($('#v-kb').classList.contains('on'))renderKB();
+}
+function setSyncMsg(m){syncMsg=m;const e=$('#syncmsg');if(e)e.textContent=m}
+let lastErrLog=[];function logAdmin(e){lastErrLog.unshift({ts:Date.now(),code:e.code||'error',detail:e.detail||e.message});lastErrLog.length=30;console.error(e)}
+function friendly(e,admin){
+ if(e.code==='nokeys')return'Add a Gemini API key in Profile first.';
+ if(e.code==='noclient')return'Add your Google OAuth client ID in Profile first.';
+ if(e.code==='oauth')return'Google sign-in did not complete. Try again.';
+ if(admin&&e.detail)return `${e.code}: ${String(e.detail).slice(0,140)}`;
+ return T('generic');
+}
+
+/* ---------- retrieval + chat ---------- */
+async function retrieve(q,k,perDoc=99){
+ const chunks=await allChunks();if(!chunks.length)return[];
+ const qv=await embedQuery(q);
+ const scored=chunks.map(c=>{let s=0;const v=c.vec;for(let i=0;i<v.length;i++)s+=v[i]*qv[i];return{c,s}}).sort((a,b)=>b.s-a.s);
+ const out=[],cnt={};
+ for(const x of scored){if(out.length>=k)break;cnt[x.c.docId]=(cnt[x.c.docId]||0)+1;if(cnt[x.c.docId]>perDoc)continue;out.push(x)}
+ return out;
+}
+const SYSTEM=`You are Project Assistance AI.
+
+Your primary knowledge source is the connected Google Drive knowledge base, provided to you as numbered context passages [S1], [S2], ...
+
+Answer questions using only information from those passages. Do not invent facts.
+If the answer cannot be found in the passages, reply exactly: "I couldn't find reliable information about this in the connected Google Drive."
+Cite every claim inline with the passage label, like [S2]. Mention the document name and page when helpful.
+If multiple documents contain relevant information, combine them and identify the sources.
+If documents conflict, explain the differences and say which document contains each version.
+Distinguish information found directly in documents from reasonable interpretation. Do not present assumptions as facts.
+Answer in the same language as the user's question (Khmer question -> Khmer answer, English -> English). Keep formatting simple: short paragraphs, numbered or bulleted lists.`;
+const ANALYZE_EXTRA=`\nThis is an ANALYZE request. Work across all relevant documents and cover, where the passages support it: similarities, differences, changes over time, dates, numbers, project activities, reported challenges, reported achievements. Name the source document for each point.`;
+
+let CONVS=LS.get('convs',[]),CUR=LS.get('cur',null),MODE='ask',busy=false;
+const saveC=()=>LS.set('convs',CONVS);
+const curConv=()=>CONVS.find(c=>c.id===CUR);
+function newConv(){const c={id:uid(),title:T('newchat'),ts:Date.now(),msgs:[],auto:true};CONVS.unshift(c);CUR=c.id;LS.set('cur',CUR);saveC();return c}
+const cacheKey=(q,mode)=>mode+'|'+q.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,'').replace(/\s+/g,' ').trim()+'|'+LS.get('idxver',0)+'|'+S.model;
+
+async function answer(conv,question,mode,{regen=false}={}){
+ const idx=await allChunks();
+ if(!idx.length)return{text:T('notfound'),sources:[]};
+ const first=conv.msgs.filter(m=>m.role==='user').length<=1;
+ const ck=cacheKey(question,mode),cache=LS.get('cache',{});
+ if(!regen&&first&&cache[ck])return Object.assign({cached:true},cache[ck]);
+ setStatus(T('searching'));
+ const k=mode==='analyze'?Math.min(24,S.topK*2):S.topK;
+ const hits=await retrieve(question,k,mode==='analyze'?5:99);
+ const sources=hits.map((h,i)=>({n:i+1,docId:h.c.docId,name:h.c.name,page:h.c.page,url:h.c.url,snippet:h.c.text.slice(0,320),score:+h.s.toFixed(3)}));
+ if(mode==='search')return{text:'',sources,searchOnly:true};
+ setStatus(T('thinking'));
+ const ctx=hits.map((h,i)=>`[S${i+1}] ${h.c.name}${h.c.page?` — page ${h.c.page}`:''}\n${h.c.text}`).join('\n\n---\n\n');
+ const hist=conv.msgs.filter(m=>!m.error&&m.text).slice(-7,-1).map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text.slice(0,1500)}]}));
+ const body={systemInstruction:{parts:[{text:SYSTEM+(mode==='analyze'?ANALYZE_EXTRA:'')}]},
+  contents:[...hist,{role:'user',parts:[{text:`Context passages:\n\n${ctx}\n\nQuestion: ${question}`}]}],
+  generationConfig:{maxOutputTokens:S.maxOut,temperature:0.2}};
+ const r=await gemini(`models/${S.model}:generateContent`,body,'chat');
+ const text=genText(r).trim()||T('notfound');
+ const cited=[...new Set([...text.matchAll(/\[S(\d+)\]/g)].map(m=>+m[1]))];
+ const notFound=/couldn't find reliable information/i.test(text);
+ const used=notFound?[]:(cited.length?sources.filter(s=>cited.includes(s.n)):sources.slice(0,3));
+ const res={text,sources:used};
+ if(!notFound){cache[ck]=res;const keys=Object.keys(cache);if(keys.length>100)delete cache[keys[0]];LS.set('cache',cache)}
+ return res;
+}
+function setStatus(t){const e=$('#status');if(e)e.innerHTML=esc(t)+'<span class="dots"></span>'}
+
+async function send(text,mode=MODE,regen=false){
+ text=text.trim();if(!text||busy)return;
+ if(!navigator.onLine){toast(T('offline'));return}
+ let conv=curConv()||newConv();
+ if(!regen){conv.msgs.push({id:uid(),role:'user',text,ts:Date.now()});if(conv.auto){conv.title=text.slice(0,48);conv.auto=false}}
+ conv.ts=Date.now();saveC();busy=true;showChat();renderConvs();
+ const m=$('#msgs');m.insertAdjacentHTML('beforeend',`<div class="msg a" id="pending"><div class="bub mute" id="status"></div></div>`);setStatus(T('searching'));m.scrollTop=m.scrollHeight;
+ try{
+  const r=await answer(conv,text,mode,{regen});
+  conv.msgs.push({id:uid(),role:'model',text:r.text,sources:r.sources,mode,cached:r.cached,searchOnly:r.searchOnly,ts:Date.now(),q:text});
+  if(S.voiceOut&&r.text)speak(r.text.replace(/\[S\d+\]/g,''));
+ }catch(e){logAdmin(e);conv.msgs.push({id:uid(),role:'model',text:friendly(e),error:true,ts:Date.now(),q:text,mode})}
+ busy=false;saveC();showChat();renderConvs();
+}
+
+/* ---------- rendering: markdown-lite ---------- */
+function md(s,src=[]){
+ s=esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>');
+ s=s.replace(/\[S(\d+)\]/g,(m,n)=>{const x=src.find(q=>q.n==n);return x?`<a class="cite" href="${esc(x.url)}" target="_blank" rel="noopener" title="${esc(x.name)}">${n}</a>`:''});
+ let out='',mode=null;const close=()=>{if(mode){out+=`</${mode}>`;mode=null}};
+ for(const line of s.split('\n')){
+  let m;
+  if(m=/^\s*[-*•]\s+(.*)/.exec(line)){if(mode!=='ul'){close();out+='<ul>';mode='ul'}out+=`<li>${m[1]}</li>`}
+  else if(m=/^\s*\d+[.)]\s+(.*)/.exec(line)){if(mode!=='ol'){close();out+='<ol>';mode='ol'}out+=`<li>${m[1]}</li>`}
+  else if(m=/^#{1,4}\s+(.*)/.exec(line)){close();out+=`<h4>${m[1]}</h4>`}
+  else if(!line.trim()){close()}
+  else{close();out+=`<p>${line}</p>`}
+ }
+ close();return out;
+}
+function srcHTML(sources,label){
+ if(!sources?.length)return'';
+ return `<div class="mute" style="font-size:12.5px;margin-top:10px">${esc(T('sources'))}</div>`+sources.map(s=>`<div class="src"><span class="n">${s.n}</span><div class="grow"><a href="${esc(s.url)}" target="_blank" rel="noopener">📄 ${esc(s.name)}</a>${s.page?` <span class="mute">· ${S.lang==='km'?'ទំព័រ':'page'} ${s.page}</span>`:''}<small>${esc(s.snippet.replace(/\s+/g,' ').slice(0,label||160))}…</small></div><a href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(T('open'))}">↗</a></div>`).join('');
+}
+function renderMsgs(){
+ const c=curConv(),m=$('#msgs');
+ if(!c||!c.msgs.length){m.innerHTML=`<div class="msg" style="text-align:center;margin-top:12vh"><h2>${esc(T('hello'))}</h2><p class="mute">${esc(T('empty'))}</p></div>`;return}
+ m.innerHTML=c.msgs.map((x,i)=>{
+  if(x.role==='user')return `<div class="msg u"><div class="bub">${esc(x.text)}</div></div>`;
+  const last=i===c.msgs.length-1;
+  return `<div class="msg a"><div class="bub ${x.error?'err':''}">${x.searchOnly?'':md(x.text,x.sources||[])}${srcHTML(x.sources,x.searchOnly?300:160)}</div>
+  <div class="acts">${x.text?`<button data-a="copy" data-i="${i}">⧉ ${esc(T('copy'))}</button><button data-a="share" data-i="${i}">↗ ${esc(T('share'))}</button><button data-a="speak" data-i="${i}">🔊 ${esc(T('speak'))}</button>`:''}${last?`<button data-a="regen" data-i="${i}">↻ ${esc(T('regen'))}</button>`:''}${x.cached?'<span class="mute" style="font-size:12px;padding:3px 7px">cached</span>':''}</div></div>`}).join('');
+ m.scrollTop=m.scrollHeight;
+}
+function renderConvs(){
+ const q=$('#convq').value.toLowerCase();
+ $('#convlist').innerHTML=CONVS.filter(c=>!q||c.title.toLowerCase().includes(q)||c.msgs.some(m=>(m.text||'').toLowerCase().includes(q))).map(c=>`<div class="ci ${c.id===CUR?'on':''}" data-id="${c.id}"><span class="t">${esc(c.title)}</span><button data-r="${c.id}" title="${esc(T('rename'))}">✎</button><button data-d="${c.id}" title="${esc(T('del'))}">🗑</button></div>`).join('');
+}
+function showChat(){nav('chat');renderMsgs();renderConvs();$('#convtitle').textContent=curConv()?.title||T('newchat');$('#send').disabled=busy;refreshStatus()}
+function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=S.lang==='km'?'km-KH':'en-US';speechSynthesis.speak(u)}catch{}}
+
+/* ---------- views ---------- */
+function refreshStatus(){
+ (async()=>{const docs=(await dbAll('docs')).filter(d=>d.status==='indexed').length;const ls=LS.get('lastSync',0);
+  const txt=`${T('kbdocs')}: ${docs.toLocaleString()} ${T('docs')} · ${T('lastsync')}: ${ls?ago(ls):T('never')}`;
+  const k=$('#kbmini');if(k)k.textContent=txt;const h=$('#homestat');if(h)h.textContent=txt;})();
+}
+function renderNav(){
+ const un=NOTIFS.filter(n=>!n.read).length;
+ const items=[['home','🏠'],['chat','💬'],['kb','📚'],['alerts','🔔'],['me','👤']];
+ $('#nav').innerHTML=`<div class="logo">Project<br>Assistance AI</div>`+items.map(([k,i])=>`<button data-v="${k}" class="${VIEW===k?'on':''}"><span class="i">${i}</span>${esc(T(k))}${k==='alerts'&&un?`<span class="badge">${un}</span>`:''}</button>`).join('');
+}
+let VIEW='home';
+function nav(v){
+ VIEW=v;document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));$('#v-'+v).classList.add('on');renderNav();
+ ({home:renderHome,kb:renderKB,alerts:renderAlerts,me:renderMe}[v]||(()=>{}))();
+ if(v==='chat'){renderConvs();$('#convtitle').textContent=curConv()?.title||T('newchat');renderMsgs();refreshStatus()}
+ $('#convs').classList.remove('open');
+}
+function renderHome(){
+ const ready=S.clientId&&S.keys.some(k=>k.key)&&S.folderId;
+ const qs=[['q1','q1p','ask'],['q2','q2p','ask'],['q3','q3p','search'],['q4','q4p','analyze'],['q5','q5p','ask']];
+ $('#v-home').innerHTML=`<div class="wrap"><h1>${esc(T('hello'))}</h1><p class="mute" id="homestat"></p>
+ <div class="chips">${qs.map(([a,p,m])=>`<button class="chip" data-q="${esc(T(p))}" data-m="${m}">${esc(T(a))}</button>`).join('')}</div>
+ ${ready?'':`<div class="card"><h2>${esc(T('setup'))}</h2><ol><li>${esc(T('setup1'))}</li><li>${esc(T('setup2'))}</li><li>${esc(T('setup3'))}</li></ol><button class="btn" data-v="me">${esc(T('me'))}</button></div>`}</div>`;
+ refreshStatus();
+}
+async function renderKB(){
+ const docs=(await dbAll('docs')).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||''));
+ const n=docs.filter(d=>d.status==='indexed').length;
+ $('#v-kb').innerHTML=`<div class="wrap"><h1>${esc(T('kb'))}</h1>
+ <p class="mute">${esc(T('kbdocs'))}: ${n.toLocaleString()} ${esc(T('docs'))} · ${esc(T('lastsync'))}: ${LS.get('lastSync')?ago(LS.get('lastSync')):T('never')}${S.folderName?' · '+esc(S.folderName):''}</p>
+ <div class="card"><label style="margin-top:0">${esc(T('folder'))}</label>
+  <div class="row"><input type="text" id="folderin" class="grow" value="${esc(S.folderId)}" placeholder="https://drive.google.com/drive/folders/…"><button class="btn" id="connect">${esc(T('connect'))}</button></div>
+  <div class="row" style="margin-top:10px"><button class="btn ghost" id="syncnow">${esc(T('syncnow'))}</button><button class="btn ghost" id="reall">${esc(T('reindexall'))}</button><span class="mute" id="syncmsg">${esc(syncMsg)}</span></div></div>
+ <div class="card tw">${docs.length?`<table><thead><tr><th>${T('doc')}</th><th>${T('type')}</th><th>${T('modified')}</th><th>${T('indexed')}</th><th>${T('status')}</th><th>${T('actions')}</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${esc(d.name)}</td><td>${esc(d.type||'')}</td><td>${fmtDate(d.modifiedTime)}</td><td>${d.indexedAt?ago(d.indexedAt):'—'}</td><td><span class="pill ${d.status}" title="${esc(d.err||'')}">${d.status}</span></td>
+ <td class="row" style="gap:4px"><button class="btn ghost sm" data-k="view" data-id="${d.id}">${esc(T('view'))}</button><a class="btn ghost sm" style="text-decoration:none" href="${esc(d.url||'#')}" target="_blank" rel="noopener">${esc(T('open'))}</a>${d.status!=='skipped'?`<button class="btn ghost sm" data-k="re" data-id="${d.id}">${esc(T('reindex'))}</button>`:''}${d.status==='indexed'?`<button class="btn ghost sm" data-k="rm" data-id="${d.id}">${esc(T('remove'))}</button>`:''}</td></tr>`).join('')}</tbody></table>`:`<p class="mute">${esc(T('emptykb'))}</p>`}</div></div>`;
+}
+function renderAlerts(){
+ const rem=LS.get('reminders',[]);
+ $('#v-alerts').innerHTML=`<div class="wrap"><h1>${esc(T('alerts'))}</h1>
+ <div class="row" style="margin-bottom:12px"><button class="btn ghost sm" id="markread">${esc(T('markread'))}</button><button class="btn ghost sm" id="clearn">${esc(T('clear'))}</button>${'Notification' in window&&Notification.permission==='default'?'<button class="btn ghost sm" id="askperm">Enable browser notifications</button>':''}</div>
+ ${NOTIFS.length?NOTIFS.map(n=>`<div class="card notif ${n.read?'':'unread'}"><div class="grow"><b>${esc(n.title)}</b><div>${esc(n.body)}</div><small class="mute">${ago(n.ts)}</small></div>${n.link?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(n.link)}" target="_blank" rel="noopener">Open document</a>`:''}</div>`).join(''):`<p class="mute">${esc(T('noalerts'))}</p>`}
+ <div class="card"><h2>Reminders</h2><p class="mute" style="margin-top:0">Fire while this page is open (daily summary, weekly report, document review, deadlines).</p>
+ ${rem.map((r,i)=>`<div class="row" style="margin-bottom:6px"><span class="grow">${esc(r.time)} · ${esc(r.title)}</span><button class="btn ghost sm" data-rem="${i}">✕</button></div>`).join('')}
+ <div class="row"><input type="text" id="remt" class="grow" placeholder="Daily project summary"><input type="time" id="remh" style="width:130px" value="08:00"><button class="btn sm" id="remadd">Add</button></div></div></div>`;
+}
+function renderMe(){
+ const d=ST.days,today=d[day()]||{ok:0,rl:0,err:0},mo=Object.entries(d).filter(([k])=>k.startsWith(day().slice(0,7))).reduce((a,[,v])=>({ok:a.ok+v.ok,rl:a.rl+v.rl,err:a.err+v.err}),{ok:0,rl:0,err:0});
+ $('#v-me').innerHTML=`<div class="wrap"><h1>${esc(T('me'))}</h1>
+ <div class="card"><div class="row"><div class="grow"><b>${esc(USER?.name||'Not signed in')}</b><div class="mute">${esc(USER?.email||'')}</div></div>
+  ${tok?`<button class="btn ghost" id="signout">${esc(T('signout'))}</button>`:`<button class="btn" id="signin">${esc(T('signin'))}</button>`}</div></div>
+ <div class="card"><h2>Settings</h2>
+  <div class="row"><div class="grow"><label>${esc(T('lang'))}</label><select id="s-lang"><option value="en">English</option><option value="km">ខ្មែរ</option></select></div>
+  <div class="grow"><label>${esc(T('theme'))}</label><select id="s-theme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div>
+  <label><input type="checkbox" id="s-voice" ${S.voiceOut?'checked':''}> Read answers aloud</label>
+  <div class="row"><div class="grow"><label>Answer model</label><input type="text" id="s-model" list="models" value="${esc(S.model)}"><datalist id="models"><option>gemini-2.5-flash</option><option>gemini-2.5-flash-lite</option><option>gemini-2.5-pro</option></datalist></div>
+  <div class="grow"><label>Passages per question (top-K)</label><input type="text" id="s-topk" value="${S.topK}"></div>
+  <div class="grow"><label>Max output tokens</label><input type="text" id="s-maxout" value="${S.maxOut}"></div></div></div>
+ <div class="card"><h2>Connections</h2>
+  <label style="margin-top:0">Google OAuth client ID (Web application; add this page's origin under Authorized JavaScript origins)</label><input type="text" id="s-client" value="${esc(S.clientId)}" placeholder="1234-abc.apps.googleusercontent.com">
+  <p class="mute" style="font-size:13px;margin:6px 0 0">This page's origin (add exactly this to Authorized JavaScript origins): <b>${esc(location.origin)}</b>${location.origin==='null'||location.protocol==='file:'?' — Google rejects file:// pages. Serve the file over http(s).':''}</p>
+  <label>Gemini API keys / projects (tried in order; stored only in this browser)</label>
+  ${S.keys.map((k,i)=>`<div class="row" style="margin-bottom:6px"><input type="text" style="width:130px" data-kn="${i}" value="${esc(k.name)}"><input type="password" class="grow" data-kk="${i}" value="${esc(k.key)}" placeholder="API key" autocomplete="off"><button class="btn ghost sm" data-krm="${i}">✕</button></div>`).join('')}
+  <div class="row"><button class="btn ghost sm" id="addkey">+ Add backup key</button><button class="btn" id="savecfg">Save</button></div></div>
+ <div class="card"><h2>API usage</h2>
+  <div class="stat"><div><b>${today.ok+today.rl+today.err}</b>Requests today</div><div><b>${mo.ok+mo.rl+mo.err}</b>This month</div><div><b>${mo.ok}</b>Successful (month)</div><div><b>${mo.rl}</b>Rate-limited (month)</div><div><b>${ST.failovers}</b>Failovers</div><div><b>${esc(ST.current||'—')}</b>Current project</div></div>
+  <div class="tw" style="margin-top:12px"><table><thead><tr><th>Project</th><th>Status</th><th>OK</th><th>Errors</th><th>429</th><th>Last error</th></tr></thead><tbody>${S.keys.map(k=>{const s=keyState(k.name);const cool=s.until>Date.now();return`<tr><td>${esc(k.name)}</td><td>${!k.key?'no key':cool?'cooling down ('+Math.ceil((s.until-Date.now())/1000)+'s)':'available'}</td><td>${s.ok}</td><td>${s.err}</td><td>${s.rl}</td><td>${esc(s.lastErr||'—')}</td></tr>`}).join('')}</tbody></table></div>
+  <p class="mute">Last failover: ${ST.lastFailover?ago(ST.lastFailover):'—'} · Last error: ${esc(ST.lastError||'—')}. Limits vary by model and tier; check Google AI Studio for your quota.</p>
+  <details><summary>Request log (keys are never logged)</summary><div class="tw"><table><thead><tr><th>Time</th><th>Project</th><th>Model</th><th>Status</th><th>ms</th><th>Tokens</th><th>Reason</th></tr></thead><tbody>${ST.log.slice(0,40).map(l=>`<tr><td>${new Date(l.ts).toLocaleTimeString()}</td><td>${esc(l.project)}</td><td>${esc(l.model)}</td><td>${l.status}</td><td>${l.ms}</td><td>${l.tokens??''}</td><td>${esc(l.reason||'')}</td></tr>`).join('')}</tbody></table></div></details>
+  ${lastErrLog.length?`<details><summary>Recent errors</summary><pre>${esc(lastErrLog.map(e=>new Date(e.ts).toLocaleTimeString()+' '+e.code+' '+(e.detail||'')).join('\n'))}</pre></details>`:''}
+  <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="clearcache">Clear answer cache</button><button class="btn ghost sm" id="resetstats">Reset stats</button></div></div>
+ </div>`;
+ $('#s-lang').value=S.lang;$('#s-theme').value=S.theme;
+}
+function modal(html){$('#modalbox').innerHTML=html+`<div style="text-align:right;margin-top:10px"><button class="btn ghost" id="mclose">Close</button></div>`;$('#modal').classList.add('on')}
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{
+ const t=e.target.closest('button,a,.ci');if(!t)return;
+ if(t.dataset.v){nav(t.dataset.v);return}
+ if(t.dataset.q){MODE=t.dataset.m||'ask';renderModes();nav('chat');send(t.dataset.q,MODE);return}
+ if(t.id==='mclose'){$('#modal').classList.remove('on');return}
+ if(t.dataset.a){const c=curConv(),i=+t.dataset.i,m=c.msgs[i];
+  if(t.dataset.a==='copy'){await navigator.clipboard.writeText(m.text);toast(T('copy')+' ✓')}
+  if(t.dataset.a==='share'){const txt=m.text.replace(/\[S\d+\]/g,'')+(m.sources?.length?'\n\n'+m.sources.map(s=>`• ${s.name}${s.page?' — p.'+s.page:''}`).join('\n'):'');
+   if(navigator.share)navigator.share({title:'Project Assistance AI',text:txt}).catch(()=>{});else{await navigator.clipboard.writeText(txt);toast(T('copy')+' ✓')}}
+  if(t.dataset.a==='speak')speak(m.text.replace(/\[S\d+\]/g,''));
+  if(t.dataset.a==='regen'){const q=m.q;c.msgs.splice(i,1);saveC();send(q,m.mode||'ask',true)}
+  return}
+ if(t.dataset.d){e.stopPropagation();if(confirm(T('del')+'?')){CONVS=CONVS.filter(c=>c.id!==t.dataset.d);if(CUR===t.dataset.d)CUR=CONVS[0]?.id||null;LS.set('cur',CUR);saveC();showChat()}return}
+ if(t.dataset.r){e.stopPropagation();const c=CONVS.find(c=>c.id===t.dataset.r);const n=prompt(T('rename'),c.title);if(n){c.title=n.slice(0,80);saveC();showChat()}return}
+ if(t.classList.contains('ci')){CUR=t.dataset.id;LS.set('cur',CUR);showChat();return}
+ if(t.dataset.k){const id=t.dataset.id,docs=await dbAll('docs'),d=docs.find(x=>x.id===id);
+  if(t.dataset.k==='view')modal(`<h2>${esc(d.name)}</h2><p class="mute">${esc(d.type||'')} · ${d.chunks||0} passages</p><pre>${esc((d.text||d.err||'(no extracted text)').slice(0,20000))}</pre><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(T('open'))}</a>`);
+  if(t.dataset.k==='rm'){await delChunks(id);d.status='removed';d.indexedAt=null;await dbPut('docs',d);chunkCache=null;LS.set('idxver',LS.get('idxver',0)+1);renderKB();toast('Removed from AI index. The Drive file is untouched.')}
+  if(t.dataset.k==='re'){try{t.disabled=true;const f=await drive(`files/${id}?fields=id,name,mimeType,modifiedTime,md5Checksum,webViewLink`);await indexFile(f,kindOf(f));LS.set('idxver',LS.get('idxver',0)+1)}catch(er){logAdmin(er);toast(friendly(er))}renderKB()}
+  return}
+ if(t.dataset.rem!==undefined){const r=LS.get('reminders',[]);r.splice(+t.dataset.rem,1);LS.set('reminders',r);renderAlerts();return}
+ if(t.dataset.krm!==undefined){collectCfg();S.keys.splice(+t.dataset.krm,1);if(!S.keys.length)S.keys=[{name:'primary',key:''}];saveS();renderMe();return}
+ switch(t.id){
+  case'signin':try{await getToken();renderMe()}catch(er){logAdmin(er);toast(friendly(er))}break;
+  case'signout':try{google.accounts.oauth2.revoke(tok)}catch{}tok=null;USER=null;LS.set('signed',false);LS.set('user',null);renderMe();break;
+  case'connect':{const id=parseFolderId($('#folderin').value);if(!id)return;try{const f=await drive(`files/${id}?fields=id,name,mimeType`);if(f.mimeType!=='application/vnd.google-apps.folder')throw new AppErr('drive','not a folder');S.folderId=id;S.folderName=f.name;saveS();sync()}catch(er){logAdmin(er);toast(friendly(er,true))}break}
+  case'syncnow':sync();break;
+  case'reall':if(confirm('Re-index every document? This uses Gemini quota.'))sync(true);break;
+  case'markread':NOTIFS.forEach(n=>n.read=true);LS.set('notifs',NOTIFS);renderNav();renderAlerts();break;
+  case'clearn':NOTIFS=[];LS.set('notifs',NOTIFS);renderNav();renderAlerts();break;
+  case'askperm':Notification.requestPermission().then(renderAlerts);break;
+  case'remadd':{const ti=$('#remt').value.trim();if(!ti)return;const r=LS.get('reminders',[]);r.push({title:ti,time:$('#remh').value||'08:00',last:''});LS.set('reminders',r);renderAlerts();break}
+  case'addkey':collectCfg();S.keys.push({name:'backup-'+S.keys.length,key:''});saveS();renderMe();break;
+  case'savecfg':collectCfg();saveS();toast('Saved');renderMe();break;
+  case'clearcache':LS.set('cache',{});toast('Cache cleared');break;
+  case'resetstats':ST={days:{},keys:{},log:[],failovers:0,lastFailover:null,lastError:null,current:null};saveST();renderMe();break;
+  case'newconv':newConv();showChat();break;
+  case'convtoggle':$('#convs').classList.toggle('open');break;
+  case'send':{const q=$('#q');const v=q.value;q.value='';send(v);break}
+  case'mic':startVoice();break;
+ }
+});
+document.addEventListener('change',e=>{
+ if(e.target.id==='s-lang'){S.lang=e.target.value;saveS();applyLang();renderMe()}
+ if(e.target.id==='s-theme'){S.theme=e.target.value;saveS();applyTheme()}
+ if(e.target.id==='s-voice'){S.voiceOut=e.target.checked;saveS()}
+});
+function collectCfg(){
+ const g=id=>$(id)?.value;if(!$('#s-client'))return;
+ S.clientId=g('#s-client').trim();S.model=g('#s-model').trim()||'gemini-2.5-flash';S.topK=Math.min(30,Math.max(2,parseInt(g('#s-topk'))||8));S.maxOut=Math.min(8192,Math.max(256,parseInt(g('#s-maxout'))||2048));
+ document.querySelectorAll('[data-kn]').forEach(el=>{S.keys[+el.dataset.kn].name=el.value.trim()||('key'+el.dataset.kn)});
+ document.querySelectorAll('[data-kk]').forEach(el=>{S.keys[+el.dataset.kk].key=el.value.trim()});
+}
+$('#modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b){MODE=b.dataset.m;renderModes()}});
+function renderModes(){$('#modes').innerHTML=['ask','search','analyze'].map(m=>`<button data-m="${m}" class="${MODE===m?'on':''}">${esc(T(m))}</button>`).join('')}
+$('#q').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#send').click()}});
+$('#q').addEventListener('input',e=>{e.target.style.height='44px';e.target.style.height=Math.min(140,e.target.scrollHeight)+'px'});
+$('#convq').addEventListener('input',renderConvs);
+function startVoice(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice input is not supported in this browser.');return}
+ const r=new SR();r.lang=S.lang==='km'?'km-KH':'en-US';r.interimResults=false;$('#mic').textContent='●';
+ r.onresult=ev=>{$('#q').value=ev.results[0][0].transcript};r.onend=()=>{$('#mic').textContent='🎤'};r.onerror=()=>{$('#mic').textContent='🎤'};r.start();
+}
+function applyTheme(){if(S.theme==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.dataset.theme=S.theme}
+function applyLang(){
+ document.documentElement.lang=S.lang;$('#newconv').textContent='＋ '+T('newchat');$('#convq').placeholder=T('searchconv');$('#q').placeholder=T('placeholder');
+ renderModes();renderNav();if(VIEW!=='chat')nav(VIEW);else showChat();
+}
+function netState(){const b=$('#banner');const off=!navigator.onLine;b.textContent=off?T('offline'):'';b.classList.toggle('show',off);$('#send').disabled=off||busy;$('#mic').disabled=off;
+ if(!off&&netState.was){toast('Back online');if(tok&&S.folderId)sync()}netState.was=off}
+addEventListener('online',netState);addEventListener('offline',netState);
+
+/* reminders + periodic sync (only while the page is open) */
+setInterval(()=>{
+ const now=new Date(),hm=now.toTimeString().slice(0,5),r=LS.get('reminders',[]);let ch=false;
+ r.forEach(x=>{if(x.time===hm&&x.last!==day()){x.last=day();ch=true;notify('Reminder',x.title)}});if(ch)LS.set('reminders',r);
+},30000);
+setInterval(()=>{if(tok&&Date.now()<tokExp-120000&&S.folderId&&navigator.onLine&&!syncing)sync()},5*60*1000);
+setInterval(()=>{if(VIEW==='home'||VIEW==='chat')refreshStatus()},60000);
+
+/* ---------- boot ---------- */
+applyTheme();applyLang();netState();
+if(!CUR||!curConv())CUR=CONVS[0]?.id||null;
+nav('home');
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
